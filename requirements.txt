@@ -1,0 +1,7 @@
+binance==0.3
+binance-client==1.0.0
+certifi==2021.5.30
+numpy==1.21.1
+python-dateutil==2.8.2
+six==1.16.0
+urllib3==1.26.6
