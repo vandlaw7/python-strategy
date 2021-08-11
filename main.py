@@ -1,27 +1,37 @@
 import csv
-import numpy
+import numpy as np
 import json
+from pymongo import MongoClient
+
+URI = "mongodb+srv://jw:1111@cluster0.yihvy.mongodb.net/myFirstDatabase?ssl=true&ssl_cert_reqs=CERT_NONEy"
 
 if __name__=="__main__":
-    with open('./data1.txt','r') as f:
-        json_data = json.load(f)
-    ticks = json_data.keys()
+    # with open('./data1.txt','r') as f:
+    #     json_data = json.load(f)
+    # ticks = json_data.keys()
+    client = MongoClient("mongodb+srv://jw:1111@cluster0.yihvy.mongodb.net/")
+
+    print(client.list_database_names())
+    db = client['myFirstDatabase']
+    ticks = db['fees'].find()
+
     results = {}
     currentTick = 195836
     currentSqrtPrice = 1416420785473901422353916045772284
     plusTick = []
     minusTick = []
     for tick in ticks:
-        tickInfo = json_data[tick]
-        results[int(tick)] = {
-            'liquidity': int(tickInfo['liquidity']),
-            'feeGrowthInside0LastX128': int(tickInfo['feeGrowthInside0X']),
-            'feeGrowthInside1LastX128': int(tickInfo['feeGrowthInside1X'])
+        pprint.pprint(tick)
+        #tickInfo = json_data[tick]
+        results[tick.tick] = {
+            'liquidityNet': int(tick.liquidityGross),
+            'feeGrowthInside0LastX128': int(tick.feeGrowthInside0),
+            'feeGrowthInside1LastX128': int(tick.feeGrowthInside1)
         }
         if (int(tick) - currentTick > 0):
-            plusTick.append(int(tick))
+            plusTick.append(tick.tick)
         else:
-            minusTick.append(int(tick))
+            minusTick.append(tick.tick)
     plusTick.sort()
     minusTick.sort(reverse = True)
     maxTotals = 0
@@ -31,8 +41,8 @@ if __name__=="__main__":
         liquidityDelta = pow(10,20) / (currentSqrtPrice / pow(2,96) - pow(1.0001, minusTick[i]/2))
 
         for j in range(0, i+1):
-            total += results[plusTick[j]]['feeGrowthInside1LastX128'] * numpy.exp(-pow(abs(plusTick[j]-currentTick) *numpy.log(1.0001),2)) * (liquidityDelta /(liquidityDelta + results[plusTick[j]]['liquidity']))
-            total += results[minusTick[j]]['feeGrowthInside1LastX128']* numpy.exp(-pow(abs(minusTick[j]-currentTick)*numpy.log(1.0001), 2)) *(liquidityDelta /(liquidityDelta + results[minusTick[j]]['liquidity']))
+            total += results[plusTick[j]]['feeGrowthInside1LastX128'] * np.exp(-pow(abs(plusTick[j]-currentTick) *np.log(1.0001),2)) * (liquidityDelta /(liquidityDelta + results[plusTick[j]]['liquidity']))
+            total += results[minusTick[j]]['feeGrowthInside1LastX128']* np.exp(-pow(abs(minusTick[j]-currentTick)*np.log(1.0001), 2)) *(liquidityDelta /(liquidityDelta + results[minusTick[j]]['liquidity']))
 
         if (maxTotals < total):
             maxIdx = i
